@@ -117,7 +117,7 @@ class Controller(object):
         self.model.changed()
 
     def classify(self, kernel="linear"):
-        print "Controller: classify(kernel='%s')" % kernel
+        print("Controller: classify(kernel='%s')" % kernel)
         train = self.model.train
 
         samples = train[:, :2]

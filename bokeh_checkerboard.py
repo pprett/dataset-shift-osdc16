@@ -25,6 +25,7 @@ from bokeh.layouts import row, column
 from bokeh.plotting import figure, curdoc
 from bokeh.models.widgets import RadioButtonGroup
 from bokeh.models.widgets import Slider
+from bokeh.models.widgets import Select
 from bokeh.models import Spacer
 from bokeh.models.widgets import Div
 from bokeh.palettes import (Blues9, BrBG9, BuGn9, BuPu9, GnBu9, Greens9,
@@ -83,11 +84,10 @@ class BokehView(View):
 
         # define elements
         self.gen_data_button = Button(label="Generate Data", button_type="success")
-        self.kernel_radio_div = Div(text="Kernel:", width=120, height=40)
-        self.kernel_radio = RadioButtonGroup(
-            labels=KERNELS, active=INIT_ACTIVE_KERNEL)
-        self.reweighting_radio = RadioButtonGroup(
-            labels=REWEIGHTINGS, active=INIT_ACTIVE_REWEIGHTING)
+        self.kernel_select = Select(title='Kernel',
+            options=KERNELS, value=KERNELS[INIT_ACTIVE_KERNEL])
+        self.reweighting_select = Select(title='Reweighting',
+            options=REWEIGHTINGS, value=REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING])
         self.classify_button = Button(label="Classify", button_type="success")
         self.train_table = BokehTable([[0.4, 0.1], [0.4, 0.1]])
         self.test_table = BokehTable([[0.4, 0.4], [0.1, 0.1]])
@@ -101,19 +101,17 @@ class BokehView(View):
         # wire callbacks
         self.gen_data_button.on_click(controller.generate_data)
         self._kernel = KERNELS[INIT_ACTIVE_KERNEL]
-        self.kernel_radio.on_change('active', self._update_kernel)
+        self.kernel_select.on_change('value', self._update_kernel)
         self._reweighting = REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING]
-        #self.reweighting_radio.on_click(self._update_reweighting)
-        self.reweighting_radio.on_change('active', self._update_reweighting)
+        self.reweighting_select.on_change('value', self._update_reweighting)
         self.classify_button.on_click(self._classify_callback)
 
         desc = Div(text=open(join(dirname(__file__), "description.html")).read(), width=1024)
 
         # set layout
         inputs = widgetbox(self.gen_data_button,
-                           # self.kernel_radio_div,
-                           self.kernel_radio,
-                           self.reweighting_radio,
+                           self.kernel_select,
+                           self.reweighting_select,
                            self.classify_button)
         layout = column(row(desc),
                         row(column(row(inputs)), column(row(self.train_fig, self.test_fig),
@@ -123,14 +121,15 @@ class BokehView(View):
         self.layout = layout
 
     def _classify_callback(self):
-        self.controller.classify(kernel=self._kernel)
+        self.controller.classify(kernel=str(self._kernel))
 
     def _update_kernel(self, attr, old, new_kernel):
-        self._kernel = KERNELS[int(new_kernel)]
+        print(attr)
+        self._kernel = new_kernel
 
     def _update_reweighting(self, attr, old, new_reweighting):
-        assert attr == 'active'
-        self._reweighting = REWEIGHTINGS[int(new_reweighting)]
+        print(attr)
+        self._reweighting = new_reweighting
         self.controller.reweight(weight=self._reweighting)
 
     def run(self):
