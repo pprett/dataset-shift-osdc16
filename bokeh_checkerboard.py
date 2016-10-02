@@ -1,0 +1,188 @@
+import numpy as np
+from collections import OrderedDict
+
+from bokeh.models.widgets import Button
+from bokeh.layouts import widgetbox
+from bokeh.layouts import row, column
+from bokeh.plotting import figure, curdoc
+from bokeh.models.widgets import RadioButtonGroup
+from bokeh.models.widgets import Slider
+from bokeh.models import Spacer
+from bokeh.models.widgets import Div
+from bokeh.palettes import (Blues9, BrBG9, BuGn9, BuPu9, GnBu9, Greens9,
+                            Greys9, OrRd9, Oranges9, PRGn9, PiYG9, PuBu9,
+                            PuBuGn9, PuOr9, PuRd9, Purples9, RdBu9, RdGy9,
+                            RdPu9, RdYlBu9, RdYlGn9, Reds9, Spectral9, YlGn9,
+                            YlGnBu9, YlOrBr9, YlOrRd9, Inferno9, Magma9,
+                            Plasma9, Viridis9, Accent8, Dark2_8, Paired9,
+                            Pastel1_9, Pastel2_8, Set1_9, Set2_8, Set3_9)
+
+from checkerboard import View
+from checkerboard import Table
+from checkerboard import Controller
+from checkerboard import Model
+
+
+PALETTE = "Greys9"
+IMAGE_ALPHA = 0.2
+FILL_ALPHA = 0.8
+LINE_ALPHA = 1.0
+standard_palettes = OrderedDict([("Blues9", Blues9), ("BrBG9", BrBG9),
+                                 ("BuGn9", BuGn9), ("BuPu9", BuPu9),
+                                 ("GnBu9", GnBu9), ("Greens9", Greens9),
+                                 ("Greys9", Greys9), ("OrRd9", OrRd9),
+                                 ("Oranges9", Oranges9), ("PRGn9", PRGn9),
+                                 ("PiYG9", PiYG9), ("PuBu9", PuBu9),
+                                 ("PuBuGn9", PuBuGn9), ("PuOr9", PuOr9),
+                                 ("PuRd9", PuRd9), ("Purples9", Purples9),
+                                 ("RdBu9", RdBu9), ("RdGy9", RdGy9),
+                                 ("RdPu9", RdPu9), ("RdYlBu9", RdYlBu9),
+                                 ("RdYlGn9", RdYlGn9), ("Reds9", Reds9),
+                                 ("Spectral9", Spectral9), ("YlGn9", YlGn9),
+                                 ("YlGnBu9", YlGnBu9), ("YlOrBr9", YlOrBr9),
+                                 ("YlOrRd9", YlOrRd9), ("Inferno9", Inferno9),
+                                 ("Magma9", Magma9), ("Plasma9", Plasma9),
+                                 ("Viridis9", Viridis9), ("Accent8", Accent8),
+                                 ("Dark2_8", Dark2_8), ("Paired9", Paired9),
+                                 ("Pastel1_9", Pastel1_9),
+                                 ("Pastel2_8", Pastel2_8), ("Set1_9", Set1_9),
+                                 ("Set2_8", Set2_8), ("Set3_9", Set3_9)])
+
+POS_COLOR = standard_palettes[PALETTE][-1]
+NEG_COLOR = standard_palettes[PALETTE][0]
+DEFAULT_SIZE = 10  # Default size of circles
+
+KERNELS = ['linear', 'rbf']
+INIT_ACTIVE_KERNEL = 0  # linear is default active
+REWEIGHTINGS = ['none', 'naive']
+INIT_ACTIVE_REWEIGHTING = 0  # none is default active
+
+
+class BokehView(View):
+
+    def __init__(self, controller):
+        super(BokehView, self).__init__(controller)
+
+        # define elements
+        self.gen_data_button = Button(label="Generate Data", button_type="success")
+        self.kernel_radio_div = Div(text="Kernel:", width=120, height=40)
+        self.kernel_radio = RadioButtonGroup(
+            labels=KERNELS, active=INIT_ACTIVE_KERNEL)
+        self.reweighting_radio = RadioButtonGroup(
+            labels=REWEIGHTINGS, active=INIT_ACTIVE_REWEIGHTING)
+        self.classify_button = Button(label="Classify", button_type="success")
+        self.train_table = BokehTable()
+        self.test_table = BokehTable()
+        self.train_fig = figure(plot_height=400, plot_width=400,
+                                title="Train Distribution", tools='',
+                                x_range=[0, 100], y_range=[-50, 5])
+        self.test_fig = figure(plot_height=400, plot_width=400,
+                               title="Test Distribution", tools='',
+                               x_range=[0, 100], y_range=[-50, 50])
+
+        # wire callbacks
+        self.gen_data_button.on_click(controller.generate_data)
+        self._kernel = KERNELS[INIT_ACTIVE_KERNEL]
+        self.kernel_radio.on_change('active', self._update_kernel)
+        self._reweighting = REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING]
+        #self.reweighting_radio.on_click(self._update_reweighting)
+        self.reweighting_radio.on_change('active', self._update_reweighting)
+        self.classify_button.on_click(self._classify_callback)
+
+        # set layout
+        inputs = widgetbox(self.gen_data_button,
+                           # self.kernel_radio_div,
+                           self.kernel_radio,
+                           self.reweighting_radio,
+                           self.classify_button)
+        layout = column(row(self.train_fig, self.test_fig),
+                        row(self.train_table.get_layout_element(),
+                            Spacer(width=100, height=100),
+                            self.test_table.get_layout_element()),
+                        row(inputs, Spacer(width=200, height=200)))
+        self.layout = layout
+
+    def _classify_callback(self):
+        self.controller.classify(kernel=self._kernel)
+
+    def _update_kernel(self, attr, old, new_kernel):
+        self._kernel = KERNELS[int(new_kernel)]
+
+    def _update_reweighting(self, attr, old, new_reweighting):
+        assert attr == 'active'
+        self._reweighting = REWEIGHTINGS[int(new_reweighting)]
+        self.controller.reweight(weight=self._reweighting)
+
+    def run(self):
+        # set layout and off we go
+        curdoc().add_root(self.layout)
+        print('added the root')
+        curdoc().title = "Checkerboard"
+        print('done')
+
+    def update(self, model):
+        # import pandas as pd
+        # print(pd.DataFrame(model.train, columns=['x', 'y', 'label']).describe())
+        # print(pd.DataFrame(model.test, columns=['x', 'y', 'label']).describe())
+
+        color_code = lambda arr: np.where(arr == 1, POS_COLOR, NEG_COLOR)
+
+        self.train_fig = figure(plot_height=400, plot_width=400,
+                                title="Train Distribution", tools='',
+                                x_range=[0, 100], y_range=[-50, 50])
+        self.test_fig = figure(plot_height=400, plot_width=400,
+                               title="Test Distribution", tools='',
+                               x_range=[0, 100], y_range=[-50, 50])
+
+        if model.surface is not None:
+            X1, X2, Z = model.surface
+            self.train_fig.image(image=[Z], x=[0], y=[-50], dw=[100], dh=[100],
+                                 palette=PALETTE, alpha=IMAGE_ALPHA)
+            self.test_fig.image(image=[Z], x=[0], y=[-50], dw=[100], dh=[100],
+                                palette=PALETTE, alpha=IMAGE_ALPHA)
+
+        sample_weight = model.sample_weight
+        if sample_weight is None:
+            sample_weight = np.ones(model.train.shape[0])
+
+        sample_weight = np.sqrt(sample_weight) * DEFAULT_SIZE
+        self.train_fig.circle(x=model.train[:, 0], y=model.train[:, 1],
+                              color=color_code(model.train[:, 2]),
+                              line_color="#7c7e71", size=sample_weight,
+                              fill_alpha=FILL_ALPHA, line_alpha=LINE_ALPHA)
+        self.test_fig.circle(x=model.test[:, 0], y=model.test[:, 1],
+                             color=color_code(model.test[:, 2]),
+                             line_color="#7c7e71", size=DEFAULT_SIZE,
+                             fill_alpha=FILL_ALPHA, line_alpha=LINE_ALPHA)
+
+        self.layout.children[0] = row(self.train_fig, self.test_fig)
+
+
+class BokehTable(Table):
+
+    def __init__(self):
+        table_params = dict(start=0, end=1, value=0.25, step=.05, width=160)
+        self.nw = Slider(title="NW", **table_params)
+        self.ne = Slider(title="NE", **table_params)
+        self.sw = Slider(title="SW", **table_params)
+        self.se = Slider(title="SE", **table_params)
+
+    def get_pd(self):
+        return np.array([[self.nw.value, self.ne.value],
+                         [self.sw.value, self.se.value]], dtype=np.float)
+
+    def get_layout_element(self):
+        return column(row(self.nw, self.ne), row(self.sw, self.se))
+
+
+model = Model()
+controller = Controller(model)
+view = BokehView(controller)
+model.add_observer(view)
+view.update(model)
+
+controller.set_train_pd(view.train_table)
+controller.set_test_pd(view.test_table)
+
+print('Run the view!')
+view.run()
