@@ -110,9 +110,9 @@ class BokehView(View):
         desc = Div(text=open(join(dirname(__file__), "description.html")).read(), width=1024)
 
         # set layout
-        inputs = widgetbox(self.gen_data_button,
-                           self.kernel_select,
+        inputs = widgetbox(self.kernel_select,
                            self.reweighting_select,
+                           self.gen_data_button,
                            self.classify_button)
         layout = column(row(desc),
                         row(column(row(inputs)), column(row(self.train_fig, self.test_fig),
