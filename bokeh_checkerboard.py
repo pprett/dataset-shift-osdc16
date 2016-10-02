@@ -23,7 +23,6 @@ from bokeh.models.widgets import Button
 from bokeh.layouts import widgetbox
 from bokeh.layouts import row, column
 from bokeh.plotting import figure, curdoc
-from bokeh.models.widgets import RadioButtonGroup
 from bokeh.models.widgets import Slider
 from bokeh.models.widgets import Select
 from bokeh.models import Spacer
@@ -85,9 +84,11 @@ class BokehView(View):
         # define elements
         self.gen_data_button = Button(label="Generate Data", button_type="success")
         self.kernel_select = Select(title='Kernel',
-            options=KERNELS, value=KERNELS[INIT_ACTIVE_KERNEL])
+                                    options=KERNELS,
+                                    value=KERNELS[INIT_ACTIVE_KERNEL])
         self.reweighting_select = Select(title='Reweighting',
-            options=REWEIGHTINGS, value=REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING])
+                                         options=REWEIGHTINGS,
+                                         value=REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING])
         self.classify_button = Button(label="Classify", button_type="success")
         self.train_table = BokehTable([[0.4, 0.1], [0.4, 0.1]])
         self.test_table = BokehTable([[0.4, 0.4], [0.1, 0.1]])
