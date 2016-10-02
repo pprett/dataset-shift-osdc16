@@ -16,6 +16,8 @@ in your browser.
 
 import numpy as np
 from collections import OrderedDict
+from os.path import join
+from os.path import dirname
 
 from bokeh.models.widgets import Button
 from bokeh.layouts import widgetbox
@@ -87,8 +89,8 @@ class BokehView(View):
         self.reweighting_radio = RadioButtonGroup(
             labels=REWEIGHTINGS, active=INIT_ACTIVE_REWEIGHTING)
         self.classify_button = Button(label="Classify", button_type="success")
-        self.train_table = BokehTable()
-        self.test_table = BokehTable()
+        self.train_table = BokehTable([[0.4, 0.1], [0.4, 0.1]])
+        self.test_table = BokehTable([[0.4, 0.4], [0.1, 0.1]])
         self.train_fig = figure(plot_height=400, plot_width=400,
                                 title="Train Distribution", tools='',
                                 x_range=[0, 100], y_range=[-50, 5])
@@ -105,17 +107,19 @@ class BokehView(View):
         self.reweighting_radio.on_change('active', self._update_reweighting)
         self.classify_button.on_click(self._classify_callback)
 
+        desc = Div(text=open(join(dirname(__file__), "description.html")).read(), width=1024)
+
         # set layout
         inputs = widgetbox(self.gen_data_button,
                            # self.kernel_radio_div,
                            self.kernel_radio,
                            self.reweighting_radio,
                            self.classify_button)
-        layout = column(row(self.train_fig, self.test_fig),
-                        row(self.train_table.get_layout_element(),
-                            Spacer(width=100, height=100),
-                            self.test_table.get_layout_element()),
-                        row(inputs, Spacer(width=200, height=200)))
+        layout = column(row(desc),
+                        row(column(row(inputs)), column(row(self.train_fig, self.test_fig),
+                                                        row(self.train_table.get_layout_element(),
+                                                            Spacer(width=100, height=100),
+                                                            self.test_table.get_layout_element()))))
         self.layout = layout
 
     def _classify_callback(self):
@@ -137,10 +141,6 @@ class BokehView(View):
         print('done')
 
     def update(self, model):
-        # import pandas as pd
-        # print(pd.DataFrame(model.train, columns=['x', 'y', 'label']).describe())
-        # print(pd.DataFrame(model.test, columns=['x', 'y', 'label']).describe())
-
         color_code = lambda arr: np.where(arr == 1, POS_COLOR, NEG_COLOR)
 
         self.train_fig = figure(plot_height=400, plot_width=400,
@@ -171,17 +171,20 @@ class BokehView(View):
                              line_color="#7c7e71", size=DEFAULT_SIZE,
                              fill_alpha=FILL_ALPHA, line_alpha=LINE_ALPHA)
 
-        self.layout.children[0] = row(self.train_fig, self.test_fig)
+        # yeah.. i dont like that either
+        self.layout.children[1].children[1].children[0] = row(self.train_fig, self.test_fig)
 
 
 class BokehTable(Table):
 
-    def __init__(self):
-        table_params = dict(start=0, end=1, value=0.25, step=.05, width=160)
-        self.nw = Slider(title="NW", **table_params)
-        self.ne = Slider(title="NE", **table_params)
-        self.sw = Slider(title="SW", **table_params)
-        self.se = Slider(title="SE", **table_params)
+    def __init__(self, init_vals=None):
+        if init_vals is None:
+            init_vals = [[0.25, 0.25], [0.25, 0.25]]
+        table_params = dict(start=0, end=1, step=.05, width=160)
+        self.nw = Slider(title="NW", value=init_vals[0][0], **table_params)
+        self.ne = Slider(title="NE", value=init_vals[0][1], **table_params)
+        self.sw = Slider(title="SW", value=init_vals[1][0], **table_params)
+        self.se = Slider(title="SE", value=init_vals[1][1], **table_params)
 
     def get_pd(self):
         return np.array([[self.nw.value, self.ne.value],
@@ -200,5 +203,4 @@ view.update(model)
 controller.set_train_pd(view.train_table)
 controller.set_test_pd(view.test_table)
 
-print('Run the view!')
 view.run()
