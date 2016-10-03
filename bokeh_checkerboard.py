@@ -76,6 +76,10 @@ REWEIGHTINGS = ['none', 'naive']
 INIT_ACTIVE_REWEIGHTING = 0  # none is default active
 
 
+def template_title(dist, err):
+    return '{} Distribution        Err: {}'.format(dist.title(), err)
+
+
 class BokehView(View):
 
     def __init__(self, controller):
@@ -93,10 +97,10 @@ class BokehView(View):
         self.train_table = BokehTable([[0.4, 0.1], [0.4, 0.1]])
         self.test_table = BokehTable([[0.4, 0.4], [0.1, 0.1]])
         self.train_fig = figure(plot_height=400, plot_width=400,
-                                title="Train Distribution", tools='',
+                                title=template_title('Train', '-'), tools='',
                                 x_range=[0, 100], y_range=[-50, 5])
         self.test_fig = figure(plot_height=400, plot_width=400,
-                               title="Test Distribution", tools='',
+                               title=template_title('test', '-'), tools='',
                                x_range=[0, 100], y_range=[-50, 50])
 
         # wire callbacks
@@ -142,10 +146,10 @@ class BokehView(View):
         color_code = lambda arr: np.where(arr == 1, POS_COLOR, NEG_COLOR)
 
         self.train_fig = figure(plot_height=400, plot_width=400,
-                                title="Train Distribution", tools='',
+                                title=template_title('train', model.trainerr), tools='',
                                 x_range=[0, 100], y_range=[-50, 50])
         self.test_fig = figure(plot_height=400, plot_width=400,
-                               title="Test Distribution", tools='',
+                               title=template_title('test', model.testerr), tools='',
                                x_range=[0, 100], y_range=[-50, 50])
 
         if model.surface is not None:
