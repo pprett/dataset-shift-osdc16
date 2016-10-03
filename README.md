@@ -13,7 +13,7 @@ You can see that underspecified discriminative models are not immune to covariat
 
 Use the ``bokeh serve`` command to run the interactive plot:
 
-    bokeh serve bokeh_checkerboard.py
+    bokeh serve checkerboard/bokeh_checkerboard.py
 
 at your command prompt. Then navigate to the URL
 
