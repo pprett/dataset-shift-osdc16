@@ -41,10 +41,10 @@ from checkerboard import Controller
 from checkerboard import Model
 
 
-PALETTE = "Greys9"
-IMAGE_ALPHA = 0.2
-FILL_ALPHA = 0.8
-LINE_ALPHA = 1.0
+PALETTE = "Spectral9"
+IMAGE_ALPHA = 210
+FILL_ALPHA = 0.9
+LINE_ALPHA = 0.8
 standard_palettes = OrderedDict([("Blues9", Blues9), ("BrBG9", BrBG9),
                                  ("BuGn9", BuGn9), ("BuPu9", BuPu9),
                                  ("GnBu9", GnBu9), ("Greens9", Greens9),
@@ -66,18 +66,54 @@ standard_palettes = OrderedDict([("Blues9", Blues9), ("BrBG9", BrBG9),
                                  ("Pastel2_8", Pastel2_8), ("Set1_9", Set1_9),
                                  ("Set2_8", Set2_8), ("Set3_9", Set3_9)])
 
-POS_COLOR = standard_palettes[PALETTE][-1]
-NEG_COLOR = standard_palettes[PALETTE][0]
 DEFAULT_SIZE = 10  # Default size of circles
-
 KERNELS = ['linear', 'rbf']
 INIT_ACTIVE_KERNEL = 0  # linear is default active
 REWEIGHTINGS = ['none', 'naive']
 INIT_ACTIVE_REWEIGHTING = 0  # none is default active
 
 
+def get_label_colors(palette_name):
+    p = standard_palettes[palette_name]
+    return p[-1], p[0]
+
+
 def template_title(dist, err):
     return '{} Distribution        Err: {}'.format(dist.title(), err)
+
+
+def hex_to_rgb(value):
+    value = value.lstrip('#')
+    lv = len(value)
+    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+
+class RGBAColorMapper(object):
+    """Maps floating point values to rgb values over a palette
+
+    @author: Christine Doig
+    """
+
+    def __init__(self, low, high, palette):
+        self.range = np.linspace(low, high, len(palette))
+        print(palette)
+        self.r, self.g, self.b = list(zip(*[hex_to_rgb(i) for i in palette]))
+
+    def color(self, data, alpha=255):
+        """Maps your data values to the pallette with linear interpolation"""
+
+        red = np.interp(data, self.range, self.r)
+        blue = np.interp(data, self.range, self.b)
+        green = np.interp(data, self.range, self.g)
+        # Style plot to return a grey color when value is 'nan'
+        red[np.isnan(red)] = 240
+        blue[np.isnan(blue)] = 240
+        green[np.isnan(green)] = 240
+        colors = np.dstack([red.astype(np.uint8),
+                          green.astype(np.uint8),
+                          blue.astype(np.uint8),
+                          np.full_like(data, alpha, dtype=np.uint8)])
+        return colors.view(dtype=np.uint32).reshape(data.shape)
 
 
 class BokehView(View):
@@ -143,7 +179,8 @@ class BokehView(View):
         print('done')
 
     def update(self, model):
-        color_code = lambda arr: np.where(arr == 1, POS_COLOR, NEG_COLOR)
+        pos_c, neg_c = get_label_colors(PALETTE)
+        color_code = lambda arr: np.where(arr == 1, pos_c, neg_c)
 
         self.train_fig = figure(plot_height=400, plot_width=400,
                                 title=template_title('train', model.trainerr), tools='',
@@ -154,10 +191,10 @@ class BokehView(View):
 
         if model.surface is not None:
             X1, X2, Z = model.surface
-            self.train_fig.image(image=[Z], x=[0], y=[-50], dw=[100], dh=[100],
-                                 palette=PALETTE, alpha=IMAGE_ALPHA)
-            self.test_fig.image(image=[Z], x=[0], y=[-50], dw=[100], dh=[100],
-                                palette=PALETTE, alpha=IMAGE_ALPHA)
+            cm = RGBAColorMapper(Z.min(), Z.max(), standard_palettes[PALETTE])
+            Y = cm.color(Z, alpha=IMAGE_ALPHA)                
+            self.train_fig.image_rgba(image=[Y], x=[0], y=[-50], dw=[100], dh=[100])
+            self.test_fig.image_rgba(image=[Y], x=[0], y=[-50], dw=[100], dh=[100])
 
         sample_weight = model.sample_weight
         if sample_weight is None:

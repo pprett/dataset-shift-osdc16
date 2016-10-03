@@ -138,7 +138,7 @@ class Controller(object):
         clf.fit(samples, labels, sample_weight=sample_weight)
 
         train_err = 1.0 - clf.score(samples,
-                                    labels)
+                                    labels, sample_weight=sample_weight)
         test_err = 1.0 - clf.score(self.model.test[:, :2],
                                    self.model.test[:, 2].ravel())
         X1, X2, Z = self.decision_surface(clf)
