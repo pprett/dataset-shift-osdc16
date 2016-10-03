@@ -4,7 +4,7 @@ Supporting material for my OSDC London'16 talk on Dataset Shift in Machine Learn
 
 ## Checkerboard
 
-<img src=".assets/checkerboard.png" width="200">
+<img src="../blob/master/.assets/checkerboard.png?row=true" width="200">
 
 Interactive plot to illustrate the phenomenon of covariate shift.
 That is, p(x,y) differs from training to testing phase. The interactive plot allows you
