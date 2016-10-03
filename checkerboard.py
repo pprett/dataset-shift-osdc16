@@ -76,7 +76,7 @@ class Controller(object):
         self.model = model
 
     def generate_data(self):
-        print "Controller: generate_data()"
+        print("Controller: generate_data()")
         self.model.set_train(generate_data(pd=self.train_pd.get_pd()))
         self.model.set_test(generate_data(pd=self.test_pd.get_pd()))
         self.model.sample_weight = np.ones(self.model.train.shape[0])
@@ -86,7 +86,7 @@ class Controller(object):
         self.model.changed()
 
     def reweight(self, weight="none"):
-        print "Controller: reweight(weight='%s')" % weight
+        print("Controller: reweight(weight='%s')" % weight)
         self.model.set_surface(None)
         self.model.set_testerr("-")
         self.model.set_trainerr("-")
@@ -132,7 +132,7 @@ class Controller(object):
         if kernel == 'linear':
             params = {'C': 0.1}
         elif kernel == 'rbf':
-            params = {'C': 0.1, 'gamma': 0.001}
+            params = {'C': 1., 'gamma': 0.0005}
         clf = SVC(kernel=kernel, probability=True, random_state=13,
                   **params)
         clf.fit(samples, labels, sample_weight=sample_weight)

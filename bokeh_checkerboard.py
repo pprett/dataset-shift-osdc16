@@ -125,11 +125,9 @@ class BokehView(View):
         self.controller.classify(kernel=str(self._kernel))
 
     def _update_kernel(self, attr, old, new_kernel):
-        print(attr)
         self._kernel = new_kernel
 
     def _update_reweighting(self, attr, old, new_reweighting):
-        print(attr)
         self._reweighting = new_reweighting
         self.controller.reweight(weight=self._reweighting)
 
