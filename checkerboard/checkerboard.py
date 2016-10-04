@@ -12,11 +12,13 @@ Example adopted from
 
 from __future__ import division
 from abc import abstractmethod
+from collections import namedtuple
 
 import sys
 import numpy as np
 
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 
 
 def generate_data(sample_size=200, pd=[[0.4, 0.4], [0.1, 0.1]]):
@@ -39,6 +41,10 @@ def generate_data(sample_size=200, pd=[[0.4, 0.4], [0.1, 0.1]]):
 
 
 class Model(object):
+
+    REWEIGHTING = namedtuple('Reweighting', 'NONE, OPTIMAL, DISCRIMINATIVE')(
+        'none', 'optimal', 'discriminative')
+
     def __init__(self):
         self.observers = []
         self.trainerr = "-"
@@ -85,12 +91,14 @@ class Controller(object):
         self.model.set_trainerr("-")
         self.model.changed()
 
-    def reweight(self, weight="none"):
-        print("Controller: reweight(weight='%s')" % weight)
+    def reweight(self, weight=None):
+        if weight is None:
+            weight = Model.REWEIGHTING.NONE
+        print("Controller: reweight(weight='{}')".format(weight))
         self.model.set_surface(None)
         self.model.set_testerr("-")
         self.model.set_trainerr("-")
-        if weight == "naive":
+        if weight == Model.REWEIGHTING.OPTIMAL:
             p = self.test_pd.get_pd()
             q = self.train_pd.get_pd()
             weight_table = p / q
@@ -107,8 +115,19 @@ class Controller(object):
                 else:
                     sample_weight[i] = weight_table[1, 1]
 
-        elif weight == "logreg":
-            assert False
+        elif weight == Model.REWEIGHTING.DISCRIMINATIVE:
+            X_s = self.model.train[:, :2]
+            X_t = self.model.test[:, :2]
+            y_s = self.model.train[:, 2:]
+            y_t = self.model.test[:, 2:]
+            X = np.r_[X_s, X_t]
+            y = np.r_[-1 * np.ones_like(y_s), np.ones_like(y_t)]
+            assert X.shape[0] == y.shape[0]
+
+            rw_est = LogisticRegression(C=0.1, random_state=13).fit(X, y)
+            sample_weight = np.exp(rw_est.decision_function(X_s))
+
+            assert X.shape[0] == y.shape[0]
         else:
             sample_weight = np.ones(self.model.train.shape[0],
                                     dtype=np.float64)
@@ -117,7 +136,7 @@ class Controller(object):
         self.model.changed()
 
     def classify(self, kernel="linear"):
-        print("Controller: classify(kernel='%s')" % kernel)
+        print("Controller: classify(kernel='{}')".format(kernel))
         train = self.model.train
 
         samples = train[:, :2]

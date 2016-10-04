@@ -68,9 +68,9 @@ standard_palettes = OrderedDict([("Blues9", Blues9), ("BrBG9", BrBG9),
 
 DEFAULT_SIZE = 10  # Default size of circles
 KERNELS = ['linear', 'rbf']
-INIT_ACTIVE_KERNEL = 0  # linear is default active
-REWEIGHTINGS = ['none', 'naive']
-INIT_ACTIVE_REWEIGHTING = 0  # none is default active
+INIT_ACTIVE_KERNEL = 'linear'
+REWEIGHTINGS = list(Model.REWEIGHTING)
+INIT_ACTIVE_REWEIGHTING = Model.REWEIGHTING.NONE
 
 
 def get_label_colors(palette_name):
@@ -96,7 +96,6 @@ class RGBAColorMapper(object):
 
     def __init__(self, low, high, palette):
         self.range = np.linspace(low, high, len(palette))
-        print(palette)
         self.r, self.g, self.b = list(zip(*[hex_to_rgb(i) for i in palette]))
 
     def color(self, data, alpha=255):
@@ -125,10 +124,10 @@ class BokehView(View):
         self.gen_data_button = Button(label="Generate Data", button_type="success")
         self.kernel_select = Select(title='Kernel',
                                     options=KERNELS,
-                                    value=KERNELS[INIT_ACTIVE_KERNEL])
+                                    value=INIT_ACTIVE_KERNEL)
         self.reweighting_select = Select(title='Reweighting',
                                          options=REWEIGHTINGS,
-                                         value=REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING])
+                                         value=INIT_ACTIVE_REWEIGHTING)
         self.classify_button = Button(label="Classify", button_type="success")
         self.train_table = BokehTable([[0.4, 0.1], [0.4, 0.1]])
         self.test_table = BokehTable([[0.4, 0.4], [0.1, 0.1]])
@@ -141,9 +140,9 @@ class BokehView(View):
 
         # wire callbacks
         self.gen_data_button.on_click(controller.generate_data)
-        self._kernel = KERNELS[INIT_ACTIVE_KERNEL]
+        self._kernel = INIT_ACTIVE_KERNEL
         self.kernel_select.on_change('value', self._update_kernel)
-        self._reweighting = REWEIGHTINGS[INIT_ACTIVE_REWEIGHTING]
+        self._reweighting = INIT_ACTIVE_REWEIGHTING
         self.reweighting_select.on_change('value', self._update_reweighting)
         self.classify_button.on_click(self._classify_callback)
 
@@ -192,7 +191,7 @@ class BokehView(View):
         if model.surface is not None:
             X1, X2, Z = model.surface
             cm = RGBAColorMapper(Z.min(), Z.max(), standard_palettes[PALETTE])
-            Y = cm.color(Z, alpha=IMAGE_ALPHA)                
+            Y = cm.color(Z, alpha=IMAGE_ALPHA)
             self.train_fig.image_rgba(image=[Y], x=[0], y=[-50], dw=[100], dh=[100])
             self.test_fig.image_rgba(image=[Y], x=[0], y=[-50], dw=[100], dh=[100])
 
