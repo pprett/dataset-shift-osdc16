@@ -4,9 +4,9 @@ Checkerboard Example
 
 Illustrates the phenomenon of covariate shift. That is, p(x,y) differs from training to testing phase. In particular, p(x) differs (given by the probability tabels) but p(y|x) remains fixed.
 
-Example adopted from
+Example adopted from 
 
-
+ Hein Matthias, Binary Classification under Sample Selection Bias, In Dataset Shift in Machine Learning. The MIT Press. 2008. 
 
 """
 
